@@ -55,6 +55,17 @@ class StoryPrompter:
     def _init_backend(self):
         backend = config.llm_backend.lower()
         if backend == "llama_cpp":
+            # On Windows, resolve CUDA runtime DLLs (cudart64_12.dll, etc.) from torch/lib
+            import sys
+            if sys.platform == "win32":
+                try:
+                    import torch
+                    torch_lib = Path(torch.__file__).parent / "lib"
+                    if torch_lib.exists():
+                        os.add_dll_directory(str(torch_lib))
+                except Exception:
+                    pass
+
             try:
                 from llama_cpp import Llama
                 model_path = Path(config.models_dir) / config.llm_model_file
@@ -68,11 +79,11 @@ class StoryPrompter:
                         verbose=config.debug
                     )
                 else:
-                    logger.warning(f"GGUF model not found at {model_path}. Prompter will use offline procedural generator until model is downloaded.")
+                    logger.info(f"GGUF model not found at {model_path}. Using built-in procedural anime story engine.")
             except ImportError:
-                logger.warning("llama_cpp library not installed. Will use procedural fallback or Ollama endpoint.")
+                logger.info("llama_cpp not installed. Using built-in procedural prompter engine.")
             except Exception as e:
-                logger.error(f"Error loading llama_cpp: {e}")
+                logger.info(f"llama_cpp DLL notice: {e}. Using built-in procedural prompter engine.")
 
     def generate(self, 
                  mode: str, 

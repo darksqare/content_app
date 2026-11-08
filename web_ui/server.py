@@ -214,6 +214,12 @@ def start_server(host: str = None, port: int = None, open_browser: bool = True):
     import uvicorn
     h = host or config.host
     p = port or config.port
+
+    print("\n" + "=" * 60)
+    print("  🎬 AutoAnime Shorts Studio is RUNNING!")
+    print(f"  👉 Web Dashboard: http://{h}:{p}")
+    print("  Keep this window open while using the Studio.")
+    print("=" * 60 + "\n")
     
     if open_browser:
         import threading
@@ -221,7 +227,10 @@ def start_server(host: str = None, port: int = None, open_browser: bool = True):
         def open_url():
             import time
             time.sleep(1.2)
-            webbrowser.open(f"http://{h}:{p}")
+            try:
+                webbrowser.open(f"http://{h}:{p}")
+            except Exception:
+                pass
         threading.Thread(target=open_url, daemon=True).start()
 
     logger.info(f"Starting Web GUI at http://{h}:{p}")
