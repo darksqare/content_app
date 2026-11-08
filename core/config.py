@@ -34,15 +34,15 @@ class AppConfig:
 
     # Image Generation (SD 1.5 Anime)
     image_backend: str = "diffusers"  # "diffusers", "mock"
-    image_model_id: str = "gsdf/Counterfeit-V3.0"  # or "stablediffusionapi/anylora"
+    image_model_id: str = "dreamlike-art/dreamlike-anime-1.0"
     image_width: int = 576
     image_height: int = 1024
     image_steps: int = 25
     image_guidance_scale: float = 7.0
 
-    # TTS Narration
+    # TTS Narration (Default Male Narrator)
     tts_backend: str = "kokoro"  # "kokoro", "edge_tts", "mock"
-    tts_voice: str = "af_sky"    # default expressive anime narrator voice
+    tts_voice: str = "am_michael"  # Male deep dramatic narrator (Kokoro)
     tts_speed: float = 1.05
 
     # Video Assembly
@@ -80,7 +80,13 @@ class AppConfig:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+                cfg = cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+                # Auto-upgrade previous defaults
+                if "counterfeit" in cfg.image_model_id.lower():
+                    cfg.image_model_id = "dreamlike-art/dreamlike-anime-1.0"
+                if cfg.tts_voice.startswith("af_"):
+                    cfg.tts_voice = "am_michael"
+                return cfg
             except Exception as e:
                 print(f"[Config] Error loading {path}, falling back to defaults: {e}")
         return cls()

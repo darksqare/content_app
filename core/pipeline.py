@@ -109,6 +109,16 @@ class PipelineManager:
 
         audio_segments = []
 
+        # Initialize / verify diffusion pipeline before starting
+        if self.image_gen.pipe is None and config.image_backend != "mock":
+            if self.current_job:
+                self.current_job["stage"] = "Loading SD Anime Diffusion Model (first time download ~2GB)..."
+                if callback:
+                    callback(self.current_job)
+            self.image_gen._ensure_pipeline()
+
+        chosen_voice = story_data.get("voice") or config.tts_voice
+
         # 1. Generate Voice Audio & Scene Visuals
         for idx, scene in enumerate(scenes):
             scene_num = scene.get("scene_number", idx + 1)
@@ -120,10 +130,10 @@ class PipelineManager:
                 if callback:
                     callback(self.current_job)
 
-            # Generate Speech
+            # Generate Speech (using selected male/female voice)
             narration = scene.get("narration", "").strip()
             audio_out = job_dir / f"audio_scene_{scene_num:02d}.wav"
-            audio_res = self.tts.synthesize(narration, str(audio_out))
+            audio_res = self.tts.synthesize(narration, str(audio_out), voice=chosen_voice)
             audio_segments.append(audio_res)
 
             # Generate Image Slide

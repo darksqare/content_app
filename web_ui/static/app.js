@@ -153,6 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Harvest any user edits made in the scene review cards
     currentStoryData.title = document.getElementById("story-title-input").value;
+    currentStoryData.voice = document.getElementById("voice-select")?.value || "am_michael";
     const narrationBoxes = document.querySelectorAll(".scene-narration-box");
     const promptBoxes = document.querySelectorAll(".scene-prompt-box");
 
@@ -426,6 +427,12 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("setting-auto-upload").checked = cfg.auto_upload || false;
       document.getElementById("setting-resolution").value = cfg.video_resolution || "576x1024";
       document.getElementById("setting-tts").value = cfg.tts_backend || "kokoro";
+      if (document.getElementById("setting-voice")) {
+        document.getElementById("setting-voice").value = cfg.tts_voice || "am_michael";
+      }
+      if (document.getElementById("voice-select")) {
+        document.getElementById("voice-select").value = cfg.tts_voice || "am_michael";
+      }
       document.getElementById("setting-bgm-vol").value = cfg.bgm_volume || 0.18;
       document.getElementById("setting-bgm-vol-text").textContent = `${cfg.bgm_volume || 0.18} (Auto-ducked)`;
     } catch (e) {
@@ -442,6 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
       auto_upload: document.getElementById("setting-auto-upload").checked,
       video_resolution: document.getElementById("setting-resolution").value,
       tts_backend: document.getElementById("setting-tts").value,
+      tts_voice: document.getElementById("setting-voice")?.value || "am_michael",
       bgm_volume: parseFloat(document.getElementById("setting-bgm-vol").value)
     };
 

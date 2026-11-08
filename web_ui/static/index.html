@@ -82,6 +82,17 @@
           </div>
 
           <div class="form-group">
+            <label for="voice-select">🎙️ Voiceover Narrator (Offline Kokoro-82M)</label>
+            <select id="voice-select" class="form-control">
+              <option value="am_michael" selected>👨 Male: Michael (Deep, Dramatic Web-Novel Narrator)</option>
+              <option value="am_adam">👨 Male: Adam (Clear, Energetic Voice)</option>
+              <option value="am_echo">👨 Male: Echo (Smooth, Calm Tone)</option>
+              <option value="af_sky">👩 Female: Sky (Expressive & Dynamic)</option>
+              <option value="af_bella">👩 Female: Bella (Gentle & Poised)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <div class="slider-header">
               <label for="duration-slider">Target Video Duration</label>
               <span id="duration-val" class="slider-val">3.0 mins (~22 scenes)</span>
@@ -289,6 +300,17 @@
             <select id="setting-tts" class="form-control">
               <option value="kokoro">Kokoro-82M (100% Offline, High-Quality Anime Voice)</option>
               <option value="edge_tts">Edge-TTS (Online fallback, zero local storage)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Default Narrator Voice</label>
+            <select id="setting-voice" class="form-control">
+              <option value="am_michael" selected>👨 Male: Michael (Deep, Dramatic Web-Novel Narrator)</option>
+              <option value="am_adam">👨 Male: Adam (Clear, Energetic Voice)</option>
+              <option value="am_echo">👨 Male: Echo (Smooth, Calm Tone)</option>
+              <option value="af_sky">👩 Female: Sky (Expressive & Dynamic)</option>
+              <option value="af_bella">👩 Female: Bella (Gentle & Poised)</option>
             </select>
           </div>
 
