@@ -56,20 +56,126 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Duration Slider
+  // Duration Slider & Exact Scenes Sync
   const durationSlider = document.getElementById("duration-slider");
   const durationVal = document.getElementById("duration-val");
+  const exactScenesInput = document.getElementById("exact-scenes-input");
 
   durationSlider.addEventListener("input", (e) => {
     const mins = parseFloat(e.target.value);
-    const scenes = Math.max(10, Math.min(35, Math.round((mins * 60) / 8)));
-    durationVal.textContent = `${mins.toFixed(1)} mins (~${scenes} scenes)`;
+    const scenes = Math.max(5, Math.min(120, Math.round((mins * 60) / 7.5)));
+    exactScenesInput.value = scenes;
+    durationVal.textContent = `${mins.toFixed(1)} mins (${scenes} scenes)`;
   });
+
+  exactScenesInput.addEventListener("input", (e) => {
+    const sc = parseInt(e.target.value) || 20;
+    const estMins = ((sc * 7.5) / 60).toFixed(1);
+    durationVal.textContent = `${estMins} mins (${sc} scenes)`;
+  });
+
+  // Voice Preview Button
+  const btnPreviewVoice = document.getElementById("btn-preview-voice");
+  const voicePreviewPlayer = document.getElementById("voice-preview-player");
+  const voiceSelect = document.getElementById("voice-select");
+
+  btnPreviewVoice.addEventListener("click", async () => {
+    const chosenVoice = voiceSelect.value;
+    btnPreviewVoice.disabled = true;
+    btnPreviewVoice.textContent = "⏳ Loading...";
+
+    try {
+      const res = await fetch("/api/tts/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voice: chosenVoice })
+      });
+      const data = await res.json();
+      if (data.status === "success" && data.audio_url) {
+        voicePreviewPlayer.src = data.audio_url;
+        voicePreviewPlayer.play();
+        btnPreviewVoice.textContent = "🔊 Playing...";
+        voicePreviewPlayer.onended = () => {
+          btnPreviewVoice.disabled = false;
+          btnPreviewVoice.textContent = "▶ Preview Voice";
+        };
+      } else {
+        alert("Preview error: " + (data.detail || "Could not generate sample"));
+        btnPreviewVoice.disabled = false;
+        btnPreviewVoice.textContent = "▶ Preview Voice";
+      }
+    } catch (err) {
+      alert("Error generating preview: " + err);
+      btnPreviewVoice.disabled = false;
+      btnPreviewVoice.textContent = "▶ Preview Voice";
+    }
+  });
+
+  // 24/7 Autopilot Continuous Mode Controller
+  const autopilotToggle = document.getElementById("autopilot-toggle");
+  const autopilotActivePanel = document.getElementById("autopilot-active-panel");
+  const autopilotCounter = document.getElementById("autopilot-counter");
+  const autopilotStatusBadge = document.getElementById("autopilot-status-badge");
+  const autopilotCooldownSelect = document.getElementById("autopilot-cooldown-select");
+
+  async function updateAutopilotState(enabled) {
+    try {
+      const res = await fetch("/api/autopilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: enabled,
+          cooldown: parseInt(autopilotCooldownSelect.value) || 15,
+          duration_mins: parseFloat(durationSlider.value) || 3.0,
+          voice: voiceSelect.value
+        })
+      });
+      const data = await res.json();
+      if (enabled) {
+        autopilotActivePanel.style.display = "block";
+        showProgressBanner("♾️ 24/7 Autopilot Mode Active - Producing continuous video stream...", 10);
+      } else {
+        autopilotActivePanel.style.display = "none";
+      }
+    } catch (e) {
+      console.error("Autopilot toggle error:", e);
+    }
+  }
+
+  autopilotToggle.addEventListener("change", (e) => {
+    updateAutopilotState(e.target.checked);
+  });
+
+  autopilotCooldownSelect.addEventListener("change", () => {
+    if (autopilotToggle.checked) {
+      updateAutopilotState(true);
+    }
+  });
+
+  // Poll Autopilot Status
+  setInterval(async () => {
+    if (!autopilotToggle.checked) return;
+    try {
+      const res = await fetch("/api/autopilot");
+      const data = await res.json();
+      if (data.stats) {
+        autopilotCounter.textContent = data.stats.videos_created || 0;
+        const stateLabels = {
+          generating_story: "Writing Story...",
+          running: "Rendering Video...",
+          cooldown: `Cooldown (${data.cooldown}s)...`,
+          idle: "Active"
+        };
+        autopilotStatusBadge.textContent = stateLabels[data.stats.state] || data.stats.state;
+      }
+    } catch (err) {}
+  }, 2500);
 
   // Generate Prompts / Story Button
   btnGenPrompts.addEventListener("click", async () => {
     const genre = document.getElementById("genre-select").value;
     const duration = parseFloat(durationSlider.value);
+    const exactScenes = parseInt(exactScenesInput.value) || 20;
     const basePrompt = document.getElementById("base-prompt-input").value;
 
     btnGenPrompts.disabled = true;
@@ -83,6 +189,7 @@ document.addEventListener("DOMContentLoaded", () => {
           mode: activeMode,
           genre_id: genre,
           duration_mins: duration,
+          exact_scenes: exactScenes,
           base_prompt: basePrompt
         })
       });

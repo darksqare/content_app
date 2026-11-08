@@ -82,22 +82,59 @@
           </div>
 
           <div class="form-group">
-            <label for="voice-select">🎙️ Voiceover Narrator (Offline Kokoro-82M)</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="voice-select" style="margin-bottom: 0;">🎙️ Voiceover Narrator (Kokoro-82M)</label>
+              <button id="btn-preview-voice" class="btn btn-secondary" style="padding: 3px 10px; font-size: 0.78rem;">
+                ▶ Preview Voice
+              </button>
+            </div>
             <select id="voice-select" class="form-control">
-              <option value="am_michael" selected>👨 Male: Michael (Deep, Dramatic Web-Novel Narrator)</option>
-              <option value="am_adam">👨 Male: Adam (Clear, Energetic Voice)</option>
-              <option value="am_echo">👨 Male: Echo (Smooth, Calm Tone)</option>
-              <option value="af_sky">👩 Female: Sky (Expressive & Dynamic)</option>
-              <option value="af_bella">👩 Female: Bella (Gentle & Poised)</option>
+              <optgroup label="👨 Male Voices (American)">
+                <option value="am_michael" selected>👨 Male: Michael (Deep, Cinematic Narrator - Recommended)</option>
+                <option value="am_adam">👨 Male: Adam (Clear, Expressive Storyteller)</option>
+                <option value="am_echo">👨 Male: Echo (Smooth, Calm, Modern)</option>
+                <option value="am_fenrir">👨 Male: Fenrir (Gravelly, Dark, Intense)</option>
+                <option value="am_eric">👨 Male: Eric (Warm & Grounded)</option>
+                <option value="am_onyx">👨 Male: Onyx (Rich Baritone, Authoritative)</option>
+                <option value="am_liam">👨 Male: Liam (Youthful, Upbeat)</option>
+                <option value="am_puck">👨 Male: Puck (Playful Character Voice)</option>
+              </optgroup>
+              <optgroup label="🇬🇧 Male Voices (British)">
+                <option value="bm_george">🇬🇧 Male: George (Refined Classical Narrator)</option>
+                <option value="bm_lewis">🇬🇧 Male: Lewis (Sophisticated & Articulate)</option>
+                <option value="bm_daniel">🇬🇧 Male: Daniel (Crisp & Authoritative)</option>
+                <option value="bm_fable">🇬🇧 Male: Fable (Poetic Mystery & Fantasy)</option>
+              </optgroup>
+              <optgroup label="👩 Female Voices (American)">
+                <option value="af_sky">👩 Female: Sky (Expressive & Dynamic)</option>
+                <option value="af_bella">👩 Female: Bella (Warm, Gentle & Emotional)</option>
+                <option value="af_heart">👩 Female: Heart (Balanced, Crystal Clear)</option>
+                <option value="af_sarah">👩 Female: Sarah (Soft & Poised)</option>
+                <option value="af_nova">👩 Female: Nova (Crisp & Modern)</option>
+                <option value="af_nicole">👩 Female: Nicole (Bright & Relatable)</option>
+              </optgroup>
+              <optgroup label="🇬🇧 Female Voices (British)">
+                <option value="bf_emma">🇬🇧 Female: Emma (Polished & Elegant)</option>
+                <option value="bf_isabella">🇬🇧 Female: Isabella (Dramatic & Regal)</option>
+                <option value="bf_alice">🇬🇧 Female: Alice (Classic Storybook Tone)</option>
+              </optgroup>
             </select>
+            <audio id="voice-preview-player" style="display: none;"></audio>
           </div>
 
           <div class="form-group">
             <div class="slider-header">
-              <label for="duration-slider">Target Video Duration</label>
-              <span id="duration-val" class="slider-val">3.0 mins (~22 scenes)</span>
+              <label for="duration-slider">Target Duration & Scene Count</label>
+              <span id="duration-val" class="slider-val">3.0 mins (20 scenes)</span>
             </div>
-            <input type="range" id="duration-slider" min="2.0" max="5.0" step="0.5" value="3.0" class="range-slider">
+            <input type="range" id="duration-slider" min="1.0" max="15.0" step="0.5" value="3.0" class="range-slider">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span class="field-hint">Exact Scene Count:</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="number" id="exact-scenes-input" min="5" max="120" value="20" class="form-control" style="width: 80px; padding: 4px 8px; text-align: center; font-weight: bold;">
+                <span class="field-hint">scenes</span>
+              </div>
+            </div>
           </div>
 
           <div class="form-group" id="base-prompt-group" style="display: none;">
@@ -109,6 +146,38 @@
             <button id="btn-generate-prompts" class="btn btn-primary">
               <span class="btn-icon">✨</span> Generate Story & Prompts
             </button>
+          </div>
+
+          <!-- 24/7 Autopilot Mode Box -->
+          <div class="card" style="margin-top: 18px; border: 1px solid rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.06); padding: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 20px;">♾️</span>
+                <strong style="font-size: 0.95rem;">24/7 Autopilot Factory</strong>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="autopilot-toggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <p class="field-hint" style="margin-bottom: 10px;">
+              Leave it running all day! Continuously generates fresh, non-repeating stories, renders videos, and queues/uploads them automatically without clicking.
+            </p>
+            <div id="autopilot-active-panel" style="display: none; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 8px;">
+                <span>Session Videos: <strong id="autopilot-counter" style="color: var(--success-color);">0</strong></span>
+                <span id="autopilot-status-badge" class="badge badge-accent">Running</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem;">
+                <span>Cooldown between videos:</span>
+                <select id="autopilot-cooldown-select" class="form-control" style="width: 110px; padding: 4px;">
+                  <option value="5">5 seconds</option>
+                  <option value="15" selected>15 seconds</option>
+                  <option value="60">1 minute</option>
+                  <option value="300">5 minutes</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 

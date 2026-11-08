@@ -91,6 +91,19 @@ class TTSEngine:
             "word_timings": word_timings
         }
 
+    def generate_preview(self, voice_id: str) -> str:
+        """
+        Synthesizes a short sample sentence to preview this specific voice.
+        Returns the output file path.
+        """
+        preview_dir = Path(config.output_dir) / "previews"
+        preview_dir.mkdir(parents=True, exist_ok=True)
+        preview_path = preview_dir / f"preview_{voice_id}.wav"
+        
+        sample_text = "Welcome to AutoAnime Shorts. I will be your narrator for this story."
+        self.synthesize(sample_text, str(preview_path), voice=voice_id)
+        return str(preview_path)
+
     def _get_audio_duration(self, audio_path: str) -> float:
         try:
             with wave.open(audio_path, 'r') as wf:

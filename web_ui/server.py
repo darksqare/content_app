@@ -43,9 +43,19 @@ class StoryGenRequest(BaseModel):
     duration_mins: float = 3.0
     base_prompt: str = ""
     custom_script: Optional[Dict[str, Any]] = None
+    exact_scenes: Optional[int] = None
 
 class JobStartRequest(BaseModel):
     story_data: Dict[str, Any]
+
+class VoicePreviewRequest(BaseModel):
+    voice: str = "am_michael"
+
+class AutopilotRequest(BaseModel):
+    enabled: bool
+    cooldown: Optional[int] = 10
+    duration_mins: Optional[float] = 3.0
+    voice: Optional[str] = "am_michael"
 
 class UploadRequest(BaseModel):
     story_id: Optional[int] = None
@@ -140,12 +150,37 @@ def generate_prompts(req: StoryGenRequest):
             genre_id=req.genre_id,
             duration_mins=req.duration_mins,
             base_prompt=req.base_prompt,
-            custom_script=req.custom_script
+            custom_script=req.custom_script,
+            exact_scenes=req.exact_scenes
         )
         return {"status": "success", "story": story_data}
     except Exception as e:
         logger.exception("Error generating prompt/script")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/tts/preview")
+def preview_voice(req: VoicePreviewRequest):
+    try:
+        preview_file = pipeline.tts.generate_preview(req.voice)
+        rel_path = Path(preview_file).relative_to(config.output_dir)
+        return {"status": "success", "audio_url": f"/output/{rel_path.as_posix()}"}
+    except Exception as e:
+        logger.exception("Voice preview generation failed")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/autopilot")
+def get_autopilot():
+    return pipeline.get_autopilot_status()
+
+@app.post("/api/autopilot")
+def set_autopilot(req: AutopilotRequest):
+    pipeline.set_autopilot(
+        enabled=req.enabled,
+        cooldown=req.cooldown or 10,
+        duration_mins=req.duration_mins or 3.0,
+        voice=req.voice or "am_michael"
+    )
+    return {"status": "success", "autopilot": pipeline.get_autopilot_status()}
 
 @app.post("/api/pipeline/start")
 def start_pipeline(req: JobStartRequest):

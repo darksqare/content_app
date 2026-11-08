@@ -35,25 +35,123 @@ class PipelineManager:
         
         self.current_job = None
         self.job_lock = threading.Lock()
+        
+        # 24/7 Autopilot Continuous Mode
+        self.autopilot_enabled = False
+        self.autopilot_cooldown = 10
+        self.autopilot_duration_mins = 3.0
+        self.autopilot_voice = "am_michael"
+        self.autopilot_genre_idx = 0
+        self.autopilot_stats = {
+            "videos_created": 0,
+            "last_title": None,
+            "state": "idle"
+        }
+        self.autopilot_thread = None
+
         self._initialized = True
+
+    def get_autopilot_status(self) -> Dict[str, Any]:
+        return {
+            "enabled": self.autopilot_enabled,
+            "cooldown": self.autopilot_cooldown,
+            "duration_mins": self.autopilot_duration_mins,
+            "stats": self.autopilot_stats,
+            "current_job": self.current_job
+        }
+
+    def set_autopilot(self, enabled: bool, cooldown: int = 10, duration_mins: float = 3.0, voice: str = "am_michael"):
+        self.autopilot_enabled = enabled
+        self.autopilot_cooldown = max(2, cooldown)
+        self.autopilot_duration_mins = max(1.0, duration_mins)
+        self.autopilot_voice = voice
+
+        if enabled and (self.autopilot_thread is None or not self.autopilot_thread.is_alive()):
+            self.autopilot_stats["state"] = "running"
+            self.autopilot_thread = threading.Thread(target=self._autopilot_loop, daemon=True)
+            self.autopilot_thread.start()
+            logger.info("24/7 Autopilot Mode ACTIVATED.")
+        elif not enabled:
+            self.autopilot_stats["state"] = "stopped"
+            logger.info("24/7 Autopilot Mode DEACTIVATED.")
+
+    def _autopilot_loop(self):
+        genres = [
+            "underworld_dark_romance",
+            "campus_romcom_cohabitation",
+            "reincarnation_urban_cultivation",
+            "psychological_thriller_mystery"
+        ]
+        
+        while self.autopilot_enabled:
+            try:
+                genre_id = genres[self.autopilot_genre_idx % len(genres)]
+                self.autopilot_genre_idx += 1
+
+                self.autopilot_stats["state"] = "generating_story"
+                logger.info(f"[Autopilot] Generating fresh story in genre '{genre_id}'...")
+
+                story_data = self.prompter.generate(
+                    mode="full_auto",
+                    genre_id=genre_id,
+                    duration_mins=self.autopilot_duration_mins
+                )
+                story_data["voice"] = self.autopilot_voice
+
+                job_id = f"job_auto_{int(time.time())}"
+                self.current_job = {
+                    "id": job_id,
+                    "status": "running",
+                    "progress": 5,
+                    "stage": f"[Autopilot] Producing '{story_data.get('title')}'...",
+                    "story_title": story_data.get("title"),
+                    "video_path": None,
+                    "error": None
+                }
+
+                res = self._execute_full_generation(story_data, job_id)
+                self.current_job["status"] = "completed"
+                self.current_job["progress"] = 100
+                self.current_job["stage"] = "Autopilot video complete!"
+                self.current_job["video_path"] = res.get("video_path")
+                self.current_job["package"] = res.get("package")
+
+                self.autopilot_stats["videos_created"] += 1
+                self.autopilot_stats["last_title"] = story_data.get("title")
+
+                logger.info(f"[Autopilot] Video #{self.autopilot_stats['videos_created']} complete! Cooling down for {self.autopilot_cooldown}s...")
+                
+                self.autopilot_stats["state"] = "cooldown"
+                for _ in range(self.autopilot_cooldown):
+                    if not self.autopilot_enabled:
+                        break
+                    time.sleep(1)
+
+            except Exception as e:
+                logger.exception(f"[Autopilot] Error in cycle: {e}")
+                time.sleep(5)
+
+        self.autopilot_stats["state"] = "idle"
 
     def pre_generate_story(self, 
                            mode: str, 
                            genre_id: str, 
                            duration_mins: float, 
                            base_prompt: str = "",
-                           custom_script: Dict[str, Any] = None) -> Dict[str, Any]:
+                           custom_script: Dict[str, Any] = None,
+                           exact_scenes: Optional[int] = None) -> Dict[str, Any]:
         """
         Executes the prompt generation phase.
         Allows users to read, inspect, and approve/tweak scenes before media creation.
         """
-        logger.info(f"Generating story proposal (mode={mode}, genre={genre_id}, duration={duration_mins}m)...")
+        logger.info(f"Generating story proposal (mode={mode}, genre={genre_id}, duration={duration_mins}m, exact_scenes={exact_scenes})...")
         story_data = self.prompter.generate(
             mode=mode,
             genre_id=genre_id,
             duration_mins=duration_mins,
             base_prompt=base_prompt,
-            custom_script=custom_script
+            custom_script=custom_script,
+            exact_scenes=exact_scenes
         )
         return story_data
 

@@ -68,12 +68,26 @@ class ImageGenerator:
         """
         Generates a 9:16 anime vertical illustration.
         Saves image to output_path and returns the path.
+        Automatically enhances prompts with realistic textures when physical objects are detected.
         """
         self._ensure_pipeline()
         out_file = Path(output_path)
         out_file.parent.mkdir(parents=True, exist_ok=True)
 
-        full_prompt = DEFAULT_POSITIVE_PREFIX + prompt
+        # Detect physical objects/props and append realism tags
+        object_keywords = [
+            "ring", "car", "maybach", "phone", "screen", "cage", "gun", "pistol",
+            "sword", "soup", "noodles", "bowl", "spoon", "food", "glass", "bottle",
+            "watch", "key", "door", "table", "chair", "bed", "window", "suit", "clothing",
+            "knife", "laptop", "building", "hallway", "steering wheel", "wipes"
+        ]
+        prompt_lower = prompt.lower()
+        has_object = any(k in prompt_lower for k in object_keywords)
+        enhanced_prompt = prompt
+        if has_object and "realistic" not in prompt_lower:
+            enhanced_prompt = f"{prompt}, realistic object textures, photorealistic materials, realistic reflections and lighting, sharp physical object focus"
+
+        full_prompt = DEFAULT_POSITIVE_PREFIX + enhanced_prompt
 
         if self.pipe is not None:
             try:
