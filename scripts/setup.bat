@@ -58,6 +58,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
+:: Optional: Try installing pre-built llama-cpp-python wheel with CUDA 12.1 (bypasses Windows MAX_PATH source build)
+echo.
+echo [*] Attempting pre-compiled llama-cpp-python installation (CUDA 12.1)...
+%VENV_PY% -m pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121 --prefer-binary >nul 2>&1
+if errorlevel 1 (
+    echo [NOTICE] Pre-compiled llama-cpp wheel skipped.
+    echo Prompter AI will run using built-in procedural engine or Ollama.
+) else (
+    echo [OK] llama-cpp-python with CUDA offloading installed.
+)
+
 :: Check Playwright Browsers for Social Upload
 echo.
 echo [*] Setting up browser automation engine...

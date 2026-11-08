@@ -22,8 +22,5 @@ diffusers>=0.25.0
 transformers>=4.36.0
 accelerate>=0.25.0
 
-# Local Prompter LLM (Offline GGUF Execution)
-llama-cpp-python>=0.2.70
-
 # Social Media Session Automation (Zero API Setup)
 playwright>=1.40.0
