@@ -14,8 +14,8 @@ kokoro>=0.8.4
 soundfile>=0.12.1
 pyttsx3>=2.90
 
-# Video Motion & Subtitle Pipeline (requires system ffmpeg)
-# FFmpeg binary is checked at runtime
+# Video Motion & Subtitle Pipeline (portable zero-setup FFmpeg)
+imageio-ffmpeg>=0.5.1
 
 # Local Diffusion (Pinned for PyTorch 2.5.1 CUDA stability)
 diffusers>=0.28.0,<0.32.0

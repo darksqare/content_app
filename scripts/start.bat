@@ -35,6 +35,16 @@ if errorlevel 1 (
     "venv\Scripts\python.exe" -m pip install "transformers>=4.41.0,<4.49.0" "diffusers>=0.28.0,<0.32.0" "accelerate<1.0.0"
 )
 
+:: Ensure FFmpeg is available (system or portable)
+where ffmpeg >nul 2>&1
+if errorlevel 1 (
+    "venv\Scripts\python.exe" -c "import imageio_ffmpeg" >nul 2>&1
+    if errorlevel 1 (
+        echo [*] Installing portable FFmpeg for video rendering...
+        "venv\Scripts\python.exe" -m pip install imageio-ffmpeg
+    )
+)
+
 echo [*] Starting Studio on http://127.0.0.1:7860 ...
 "venv\Scripts\python.exe" run.py
 

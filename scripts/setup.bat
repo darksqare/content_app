@@ -78,10 +78,9 @@ echo [*] Setting up browser automation engine...
 echo.
 where ffmpeg >nul 2>&1
 if errorlevel 1 (
-    echo [NOTICE] FFmpeg is not detected in your Windows PATH.
-    echo To install FFmpeg automatically on Windows 11, open PowerShell and run:
-    echo   winget install Gyan.FFmpeg
-    echo or download directly from: https://www.gyan.dev/ffmpeg/builds/
+    echo [*] Setting up portable FFmpeg engine for video rendering...
+    %VENV_PY% -m pip install imageio-ffmpeg
+    echo [OK] Portable FFmpeg engine configured.
 ) else (
     echo [OK] FFmpeg is installed and accessible.
 )

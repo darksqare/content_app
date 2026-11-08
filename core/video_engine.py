@@ -1,5 +1,6 @@
 import os
 import math
+import shutil
 import subprocess
 import logging
 from pathlib import Path
@@ -12,6 +13,35 @@ class VideoEngine:
     def __init__(self):
         self.fps = config.video_fps
         self.width, self.height = [int(x) for x in config.video_resolution.split("x")]
+        self.ffmpeg_cmd = self._resolve_ffmpeg()
+
+    def _resolve_ffmpeg(self) -> str:
+        # 1. System PATH
+        cmd = shutil.which("ffmpeg")
+        if cmd:
+            return cmd
+
+        # 2. Try portable imageio_ffmpeg
+        try:
+            import imageio_ffmpeg
+            exe = imageio_ffmpeg.get_ffmpeg_exe()
+            if exe and Path(exe).exists():
+                return exe
+        except Exception:
+            pass
+
+        # 3. Check common Windows WinGet / Program Files paths
+        local_app = os.environ.get("LOCALAPPDATA", "")
+        candidates = [
+            Path(local_app) / "Microsoft" / "WinGet" / "Links" / "ffmpeg.exe",
+            Path("C:/Program Files/ffmpeg/bin/ffmpeg.exe"),
+            Path("C:/ffmpeg/bin/ffmpeg.exe")
+        ]
+        for p in candidates:
+            if p.exists():
+                return str(p)
+
+        return "ffmpeg"
 
     def assemble_video(self, 
                        scenes: List[Dict[str, Any]], 
@@ -280,8 +310,19 @@ class VideoEngine:
             return voice_path
 
     def _run_cmd(self, cmd: List[str], desc: str):
+        # Substitute 'ffmpeg' with resolved binary path
+        run_cmd = list(cmd)
+        if run_cmd and run_cmd[0] == "ffmpeg":
+            run_cmd[0] = self.ffmpeg_cmd
+
         try:
-            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(run_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"FFmpeg binary not found at '{self.ffmpeg_cmd}'. "
+                "Please run in PowerShell: winget install Gyan.FFmpeg "
+                "or run in terminal: pip install imageio-ffmpeg"
+            )
         except subprocess.CalledProcessError as e:
             logger.error(f"FFmpeg error during '{desc}': {e.stderr.decode('utf-8', errors='ignore')}")
             raise
