@@ -1,2 +1,2 @@
 @echo off
-call scripts\start.bat
+call "%~dp0scripts\start.bat"

@@ -10,8 +10,19 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from core.config import config
-from web_ui.server import start_server
+try:
+    from web_ui.server import start_server
+except ModuleNotFoundError as e:
+    missing_mod = getattr(e, 'name', str(e))
+    print("\n" + "=" * 60)
+    print(f" [ERROR] Missing dependency: '{missing_mod}'")
+    print(" It looks like requirements have not been installed yet.")
+    print(" To fix this:")
+    print("   1. Double-click 'setup.bat' in the project folder (Windows)")
+    print("      or run: pip install -r requirements.txt")
+    print("   2. Launch using 'start.bat' so the virtual environment is used.")
+    print("=" * 60 + "\n")
+    sys.exit(1)
 
 logging.basicConfig(
     level=logging.INFO,
