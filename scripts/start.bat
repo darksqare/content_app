@@ -28,6 +28,13 @@ if errorlevel 1 (
     )
 )
 
+:: Check for transformers 5.x incompatibility with PyTorch 2.5.1
+"venv\Scripts\python.exe" -c "import transformers; assert int(transformers.__version__.split('.')[0]) < 5" >nul 2>&1
+if errorlevel 1 (
+    echo [*] Aligning transformers library for PyTorch 2.5 CUDA compatibility...
+    "venv\Scripts\python.exe" -m pip install "transformers>=4.41.0,<4.49.0" "diffusers>=0.28.0,<0.32.0" "accelerate<1.0.0"
+)
+
 echo [*] Starting Studio on http://127.0.0.1:7860 ...
 "venv\Scripts\python.exe" run.py
 

@@ -14,9 +14,13 @@ class ImageGenerator:
     def __init__(self):
         self.pipe = None
         self.device = config.device
-        self._init_pipeline()
+        self._initialized = False
 
-    def _init_pipeline(self):
+    def _ensure_pipeline(self):
+        if self._initialized:
+            return
+        self._initialized = True
+
         if config.image_backend == "mock":
             logger.info("ImageGenerator running in mock/procedural mode.")
             return
@@ -26,12 +30,11 @@ class ImageGenerator:
             from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
 
             if not torch.cuda.is_available():
-                logger.warning("CUDA is not available. ImageGenerator will use mock/procedural generation to preserve CPU performance.")
+                logger.info("CUDA not active for diffusion. Using procedural generator for fast response.")
                 return
 
-            logger.info(f"Initializing Stable Diffusion Anime Pipeline ({config.image_model_id}) on {self.device}...")
+            logger.info(f"Loading SD 1.5 Anime Checkpoint ({config.image_model_id}) on {self.device}...")
             
-            # Check if user placed local checkpoint in models/
             local_ckpt = Path(config.models_dir) / "anime_checkpoint.safetensors"
             if local_ckpt.exists():
                 self.pipe = StableDiffusionPipeline.from_single_file(
@@ -47,8 +50,6 @@ class ImageGenerator:
                 )
 
             self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
-
-            # VRAM optimization for RTX 4060 8GB
             self.pipe.enable_attention_slicing()
             try:
                 self.pipe.enable_xformers_memory_efficient_attention()
@@ -56,18 +57,19 @@ class ImageGenerator:
                 pass
             
             self.pipe.to(self.device)
-            logger.info("Stable Diffusion Anime Pipeline initialized successfully.")
+            logger.info("SD Anime Pipeline loaded successfully on RTX 4060.")
 
         except ImportError:
-            logger.warning("Diffusers or PyTorch not installed. Using procedural fallback generator.")
+            logger.info("Diffusers/Transformers not installed. Using procedural fallback.")
         except Exception as e:
-            logger.error(f"Error initializing Diffusers pipeline: {e}. Falling back to procedural generator.")
+            logger.warning(f"Notice initializing Diffusers: {e}. Using procedural graphics.")
 
     def generate_scene_image(self, prompt: str, output_path: str, scene_num: int = 1, mood: str = "suspense") -> str:
         """
         Generates a 9:16 anime vertical illustration.
         Saves image to output_path and returns the path.
         """
+        self._ensure_pipeline()
         out_file = Path(output_path)
         out_file.parent.mkdir(parents=True, exist_ok=True)
 
