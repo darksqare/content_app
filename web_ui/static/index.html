@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoAnime Shorts - Local AI Content Studio</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-badge">
+        <span class="logo-icon">🎬</span>
+        <div>
+          <h1 class="logo-title">AutoAnime Shorts</h1>
+          <span class="logo-sub">Local 9:16 Viral Web-Novel & Anime Studio</span>
+        </div>
+      </div>
+    </div>
+    
+    <nav class="header-nav">
+      <button class="nav-btn active" data-tab="create-tab">⚡ Create & Review</button>
+      <button class="nav-btn" data-tab="vault-tab">📚 Story Vault & Memory</button>
+      <button class="nav-btn" data-tab="upload-tab">🚀 Social Uploads</button>
+      <button class="nav-btn" data-tab="settings-tab">⚙️ Settings</button>
+    </nav>
+
+    <div class="header-right">
+      <div class="status-chip" id="hw-chip">
+        <span class="dot online"></span>
+        <span>RTX 4060 (8GB) • Offline Mode</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="app-main">
+
+    <!-- Tab 1: Create & Review -->
+    <section id="create-tab" class="tab-pane active">
+      <div class="grid-layout">
+        
+        <!-- Left Column: Controls & Prompting -->
+        <div class="card control-card">
+          <div class="card-header">
+            <h2>1. Generation Mode & Setup</h2>
+            <span class="badge" id="mode-badge">Pre-Generate & Review</span>
+          </div>
+
+          <div class="mode-selector">
+            <button class="mode-chip" data-mode="full_auto" title="Generate script and immediately start video production">
+              <span class="chip-icon">⚡</span>
+              <span class="chip-label">Full Auto</span>
+            </button>
+            <button class="mode-chip active" data-mode="pre_generate" title="Generate script & scene prompts first to review/edit before video render">
+              <span class="chip-icon">📝</span>
+              <span class="chip-label">Pre-Generate</span>
+            </button>
+            <button class="mode-chip" data-mode="semi_manual" title="Write a rough premise; AI expands it into a finished script">
+              <span class="chip-icon">💡</span>
+              <span class="chip-label">Semi-Manual</span>
+            </button>
+            <button class="mode-chip" data-mode="manual" title="Type your own story and scenes manually">
+              <span class="chip-icon">✍️</span>
+              <span class="chip-label">Manual</span>
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="genre-select">Genre Preset & Narrative Formula</label>
+            <select id="genre-select" class="form-control">
+              <option value="underworld_dark_romance">👑 Underworld / Mafia Dark Romance (Reference 1)</option>
+              <option value="campus_romcom_cohabitation">🏫 Campus Rom-Com & Scheming Goddess (Reference 2)</option>
+              <option value="reincarnation_urban_cultivation">⚡ Urban Fantasy & Hidden Identity Revenge</option>
+              <option value="psychological_thriller_mystery">🔍 Psychological Thriller & Locked Room Twist</option>
+            </select>
+            <p class="field-hint" id="genre-desc">High-stakes underworld romance with female boss & captive male lead.</p>
+          </div>
+
+          <div class="form-group">
+            <div class="slider-header">
+              <label for="duration-slider">Target Video Duration</label>
+              <span id="duration-val" class="slider-val">3.0 mins (~22 scenes)</span>
+            </div>
+            <input type="range" id="duration-slider" min="2.0" max="5.0" step="0.5" value="3.0" class="range-slider">
+          </div>
+
+          <div class="form-group" id="base-prompt-group" style="display: none;">
+            <label for="base-prompt-input">Your Base Prompt / Premise to Enhance</label>
+            <textarea id="base-prompt-input" class="form-control" rows="3" placeholder="e.g. A broke medical student is framed by his cousins and auctioned off, but the buyer is the feared underworld queen who remembers him..."></textarea>
+          </div>
+
+          <div class="action-btn-row">
+            <button id="btn-generate-prompts" class="btn btn-primary">
+              <span class="btn-icon">✨</span> Generate Story & Prompts
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Column: Story Review & Live Player -->
+        <div class="card preview-card">
+          <div class="card-header">
+            <h2>2. Story Script & Scene Review</h2>
+            <div class="header-actions">
+              <button id="btn-approve-render" class="btn btn-success" disabled>
+                <span>🚀</span> Approve & Render Video
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div id="review-empty-state" class="empty-state">
+            <div class="empty-icon">📖</div>
+            <h3>No Story Generated Yet</h3>
+            <p>Select your mode and click <strong>Generate Story & Prompts</strong>. You will be able to inspect, edit narration, review image prompts, and approve before video rendering.</p>
+          </div>
+
+          <!-- Active Story Content (Hidden Initially) -->
+          <div id="review-content" style="display: none;">
+            <div class="story-overview-box">
+              <div class="story-meta-row">
+                <input type="text" id="story-title-input" class="story-title-field" placeholder="Story Title">
+                <span class="badge badge-accent" id="review-genre-badge">Underworld Romance</span>
+              </div>
+              <p class="story-logline" id="story-logline-text"></p>
+              
+              <div class="story-cast-grid">
+                <div><strong>Protagonist:</strong> <span id="story-protagonist"></span></div>
+                <div><strong>Deuteragonist:</strong> <span id="story-deuteragonist"></span></div>
+                <div><strong>Conflict:</strong> <span id="story-conflict"></span></div>
+                <div><strong>Twist / Climax:</strong> <span id="story-twist"></span></div>
+              </div>
+            </div>
+
+            <div class="scenes-container-header">
+              <h3>Scene-by-Scene Breakdown (<span id="scene-count-badge">0</span> scenes)</h3>
+              <span class="hint">Click any narration or prompt to edit before rendering</span>
+            </div>
+
+            <div id="scenes-list" class="scenes-list">
+              <!-- Dynamically populated scene cards -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Job Progress Banner -->
+      <div id="progress-banner" class="progress-banner" style="display: none;">
+        <div class="progress-info">
+          <div class="spinner"></div>
+          <div>
+            <strong id="progress-stage">Rendering Ken Burns motion...</strong>
+            <span id="progress-percent">65%</span>
+          </div>
+        </div>
+        <div class="progress-bar-track">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 65%;"></div>
+        </div>
+      </div>
+
+      <!-- Completed Video Display Modal / Banner -->
+      <div id="video-complete-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3>🎉 Video Generation Complete!</h3>
+            <button class="close-modal-btn" onclick="closeVideoModal()">&times;</button>
+          </div>
+          <div class="modal-body video-modal-grid">
+            <div class="video-preview-wrapper">
+              <video id="player-video" controls class="portrait-player" src=""></video>
+            </div>
+            <div class="video-meta-details">
+              <h4 id="completed-video-title">The Syndicate Empress and Her Stolen Light</h4>
+              <p id="completed-video-desc"></p>
+              
+              <div class="metadata-box">
+                <label>Trending Hashtags</label>
+                <div id="completed-hashtags" class="tag-cloud"></div>
+                
+                <label style="margin-top: 12px;">Pinned Comment Prompt</label>
+                <p id="completed-comment" class="comment-quote"></p>
+              </div>
+
+              <div class="upload-gate-box">
+                <div class="toggle-row">
+                  <label class="switch">
+                    <input type="checkbox" id="modal-auto-upload">
+                    <span class="slider round"></span>
+                  </label>
+                  <span>Auto-Upload Enabled (Immediate dispatch)</span>
+                </div>
+
+                <div class="platform-checkboxes">
+                  <label><input type="checkbox" id="up-yt" checked> YouTube Shorts</label>
+                  <label><input type="checkbox" id="up-tt" checked> TikTok</label>
+                  <label><input type="checkbox" id="up-ig" checked> Instagram Reels</label>
+                </div>
+
+                <button id="btn-dispatch-upload" class="btn btn-primary btn-block" style="margin-top: 16px;">
+                  🚀 Approve & Publish Video
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Story Vault & Anti-Repetition -->
+    <section id="vault-tab" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2>📚 Story Vault & Anti-Repetition Registry</h2>
+            <p class="field-hint">The Prompter AI memorizes every logged story premise and twist below, strictly forbidding duplicate or repetitive narratives.</p>
+          </div>
+          <button id="btn-refresh-vault" class="btn btn-secondary">🔄 Refresh</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Genre</th>
+                <th>Logline & Premise</th>
+                <th>Climax / Twist</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vault-table-body">
+              <tr><td colspan="8" class="text-center">Loading Story Vault records...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Social Uploads -->
+    <section id="upload-tab" class="tab-pane">
+      <div class="card">
+        <div class="card-header">
+          <h2>🚀 Social Media Upload Queue & Review Gate</h2>
+        </div>
+        <p class="field-hint">Manage manual approvals, view prepared upload packages with generated viral copy, and configure session automation.</p>
+        
+        <div id="upload-queue-container" class="queue-grid">
+          <!-- Populated from stories with pending_review or uploaded -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: Settings -->
+    <section id="settings-tab" class="tab-pane">
+      <div class="card settings-card">
+        <div class="card-header">
+          <h2>⚙️ Engine & Hardware Preferences</h2>
+        </div>
+        
+        <div class="settings-grid">
+          <div class="form-group">
+            <label>Auto-Upload Default</label>
+            <div class="toggle-row">
+              <label class="switch">
+                <input type="checkbox" id="setting-auto-upload">
+                <span class="slider round"></span>
+              </label>
+              <span>Auto-Upload without manual confirmation</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Video Resolution</label>
+            <select id="setting-resolution" class="form-control">
+              <option value="576x1024">576 x 1024 (9:16 Vertical - Fast Render & Low Storage)</option>
+              <option value="1080x1920">1080 x 1920 (9:16 Full HD)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Text-to-Speech Engine</label>
+            <select id="setting-tts" class="form-control">
+              <option value="kokoro">Kokoro-82M (100% Offline, High-Quality Anime Voice)</option>
+              <option value="edge_tts">Edge-TTS (Online fallback, zero local storage)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Background Music Volume</label>
+            <input type="range" id="setting-bgm-vol" min="0.05" max="0.5" step="0.02" value="0.18" class="range-slider">
+            <span id="setting-bgm-vol-text">0.18 (Auto-ducked)</span>
+          </div>
+
+          <div class="form-group">
+            <label>Hardware Profile</label>
+            <p class="code-box">NVIDIA RTX 4060 (8GB VRAM) • Intel i5-6400 • 16GB RAM • Windows 11</p>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

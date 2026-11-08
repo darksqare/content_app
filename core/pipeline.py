@@ -1,0 +1,200 @@
+import os
+import time
+import json
+import logging
+import threading
+from pathlib import Path
+from typing import Dict, Any, List, Optional, Callable
+from core.config import config
+from core.memory import StoryVault
+from core.prompter import StoryPrompter
+from core.image_gen import ImageGenerator
+from core.tts import TTSEngine
+from core.video_engine import VideoEngine
+from core.uploader import SocialUploader
+
+logger = logging.getLogger("PipelineManager")
+
+class PipelineManager:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(PipelineManager, cls).__new__(cls)
+        return cls._instance
+
+    def __init__(self):
+        if hasattr(self, "_initialized") and self._initialized:
+            return
+        self.vault = StoryVault(config.vault_db_path)
+        self.prompter = StoryPrompter(self.vault)
+        self.image_gen = ImageGenerator()
+        self.tts = TTSEngine()
+        self.video_engine = VideoEngine()
+        self.uploader = SocialUploader(self.vault)
+        
+        self.current_job = None
+        self.job_lock = threading.Lock()
+        self._initialized = True
+
+    def pre_generate_story(self, 
+                           mode: str, 
+                           genre_id: str, 
+                           duration_mins: float, 
+                           base_prompt: str = "",
+                           custom_script: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Executes the prompt generation phase.
+        Allows users to read, inspect, and approve/tweak scenes before media creation.
+        """
+        logger.info(f"Generating story proposal (mode={mode}, genre={genre_id}, duration={duration_mins}m)...")
+        story_data = self.prompter.generate(
+            mode=mode,
+            genre_id=genre_id,
+            duration_mins=duration_mins,
+            base_prompt=base_prompt,
+            custom_script=custom_script
+        )
+        return story_data
+
+    def start_pipeline_job(self, story_data: Dict[str, Any], callback: Optional[Callable[[Dict[str, Any]], None]] = None) -> str:
+        """
+        Starts full media generation in a background thread.
+        """
+        job_id = f"job_{int(time.time())}"
+        
+        def worker():
+            with self.job_lock:
+                self.current_job = {
+                    "id": job_id,
+                    "status": "running",
+                    "progress": 5,
+                    "stage": "Initializing production...",
+                    "story_title": story_data.get("title", "Untitled Story"),
+                    "video_path": None,
+                    "error": None
+                }
+                if callback:
+                    callback(self.current_job)
+
+                try:
+                    res = self._execute_full_generation(story_data, job_id, callback)
+                    self.current_job["status"] = "completed"
+                    self.current_job["progress"] = 100
+                    self.current_job["stage"] = "Video generation complete!"
+                    self.current_job["video_path"] = res.get("video_path")
+                    self.current_job["package"] = res.get("package")
+                    if callback:
+                        callback(self.current_job)
+                except Exception as e:
+                    logger.exception(f"Job {job_id} encountered an error: {e}")
+                    self.current_job["status"] = "failed"
+                    self.current_job["error"] = str(e)
+                    self.current_job["stage"] = f"Failed: {e}"
+                    if callback:
+                        callback(self.current_job)
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        return job_id
+
+    def _execute_full_generation(self, story_data: Dict[str, Any], job_id: str, callback: Optional[Callable] = None) -> Dict[str, Any]:
+        scenes = story_data.get("scenes", [])
+        total_scenes = len(scenes)
+        if total_scenes == 0:
+            raise ValueError("Story contains zero scenes to produce.")
+
+        job_dir = Path(config.output_dir) / job_id
+        job_dir.mkdir(parents=True, exist_ok=True)
+
+        audio_segments = []
+
+        # 1. Generate Voice Audio & Scene Visuals
+        for idx, scene in enumerate(scenes):
+            scene_num = scene.get("scene_number", idx + 1)
+            percent = 10 + int((idx / total_scenes) * 60)
+            
+            if self.current_job:
+                self.current_job["progress"] = percent
+                self.current_job["stage"] = f"Producing Scene {scene_num}/{total_scenes}..."
+                if callback:
+                    callback(self.current_job)
+
+            # Generate Speech
+            narration = scene.get("narration", "").strip()
+            audio_out = job_dir / f"audio_scene_{scene_num:02d}.wav"
+            audio_res = self.tts.synthesize(narration, str(audio_out))
+            audio_segments.append(audio_res)
+
+            # Generate Image Slide
+            image_prompt = scene.get("image_prompt", "")
+            img_out = job_dir / f"slide_scene_{scene_num:02d}.png"
+            scene_img_path = self.image_gen.generate_scene_image(
+                prompt=image_prompt,
+                output_path=str(img_out),
+                scene_num=scene_num,
+                mood=scene.get("mood", "suspense")
+            )
+            scene["image_path"] = scene_img_path
+
+        # 2. Assemble Final 9:16 Video
+        if self.current_job:
+            self.current_job["progress"] = 75
+            self.current_job["stage"] = "Rendering Ken Burns motion and burning dynamic subtitles..."
+            if callback:
+                callback(self.current_job)
+
+        final_video_path = job_dir / f"{job_id}_final_video.mp4"
+        self.video_engine.assemble_video(
+            scenes=scenes,
+            audio_segments=audio_segments,
+            output_video_path=str(final_video_path)
+        )
+
+        # 3. Register story into the SQLite Vault
+        if self.current_job:
+            self.current_job["progress"] = 90
+            self.current_job["stage"] = "Registering narrative into Story Vault..."
+            if callback:
+                callback(self.current_job)
+
+        full_script = "\n\n".join([f"[Scene {s.get('scene_number', i+1)}] {s.get('narration')}" for i, s in enumerate(scenes)])
+        story_id = self.vault.add_story(
+            title=story_data.get("title", "Untitled Story"),
+            genre=story_data.get("genre", "Anime Story"),
+            logline=story_data.get("logline", ""),
+            protagonist=story_data.get("protagonist", ""),
+            deuteragonist=story_data.get("deuteragonist", ""),
+            core_conflict=story_data.get("core_conflict", ""),
+            climax_twist=story_data.get("climax_twist", ""),
+            resolution=story_data.get("resolution", ""),
+            hashtags=" ".join(story_data.get("hashtags", [])),
+            full_script=full_script,
+            scenes=scenes,
+            video_path=str(final_video_path)
+        )
+
+        # 4. Package for Social Upload
+        package = self.uploader.prepare_package(
+            story_id=story_id,
+            title=story_data.get("title", ""),
+            description=story_data.get("description", story_data.get("logline", "")),
+            hashtags=story_data.get("hashtags", []),
+            pinned_comment=story_data.get("pinned_comment", ""),
+            video_path=str(final_video_path)
+        )
+
+        # 5. Check Auto-Upload toggle
+        if config.auto_upload:
+            if self.current_job:
+                self.current_job["progress"] = 95
+                self.current_job["stage"] = "Auto-uploading to enabled social channels..."
+                if callback:
+                    callback(self.current_job)
+            self.uploader.execute_upload(package)
+
+        return {
+            "story_id": story_id,
+            "video_path": str(final_video_path),
+            "package": package
+        }

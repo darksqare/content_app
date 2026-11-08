@@ -1,0 +1,21 @@
+{
+  "id": "psychological_thriller_mystery",
+  "name": "Psychological Thriller & Locked Room Twist",
+  "description": "Mind-bending suspense, high tension, ticking clock, unreliable narrators, and shocking closing revelations.",
+  "tone": "suspenseful, eerie, fast-paced, intellectual clash, dark",
+  "target_audience": "Mystery thriller enthusiasts, death game / crime anime viewers",
+  "visual_style": "Moody desaturated palette, rain-streaked windows, flashing sirens, intense close-ups of eyes, shadowed figures",
+  "character_archetypes": {
+    "protagonist": "Cerebral detective or trapped victim unraveling a puzzle",
+    "deuteragonist": "Enigmatic partner whose loyalties remain deeply ambiguous",
+    "antagonist": "Mastermind orchestrating events from the shadows"
+  },
+  "narrative_formula": [
+    "Hook: A gruesome or impossible puzzle discovered under a strict countdown.",
+    "Clue Discovery: Uncovering an inconsistency in witness testimony or room layout.",
+    "The Trap: Protagonist is cornered; looks like checkmate.",
+    "The Intellectual Reversal: Revealing that the protagonist foresaw the trap all along.",
+    "Twist Ending: The true culprit was someone hiding in plain sight."
+  ],
+  "default_tags": ["#thriller", "#psychologicalanime", "#mystery", "#plotwist", "#mindgames", "#animecrime", "#shorts", "#fyp"]
+}

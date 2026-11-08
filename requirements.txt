@@ -1,0 +1,29 @@
+# Core Web & API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+python-multipart>=0.0.6
+requests>=2.31.0
+
+# Image & Visual Processing
+pillow>=10.0.0
+numpy>=1.24.0
+
+# Offline Text-to-Speech (82M Lightweight)
+kokoro>=0.8.4
+soundfile>=0.12.1
+pyttsx3>=2.90
+
+# Video Motion & Subtitle Pipeline (requires system ffmpeg)
+# FFmpeg binary is checked at runtime
+
+# Local Diffusion (SD 1.5 Anime / Low-VRAM 8GB)
+diffusers>=0.25.0
+transformers>=4.36.0
+accelerate>=0.25.0
+
+# Local Prompter LLM (Offline GGUF Execution)
+llama-cpp-python>=0.2.70
+
+# Social Media Session Automation (Zero API Setup)
+playwright>=1.40.0
