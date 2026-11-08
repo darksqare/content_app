@@ -11,6 +11,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT_DIR))
 
 try:
+    from core.config import config
     from web_ui.server import start_server
 except ModuleNotFoundError as e:
     missing_mod = getattr(e, 'name', str(e))
