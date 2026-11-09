@@ -34,12 +34,15 @@ logger = logging.getLogger("Launcher")
 def check_system_prerequisites():
     logger.info("Checking system prerequisites...")
     
-    # 1. Check FFmpeg
-    if not shutil.which("ffmpeg"):
-        logger.warning("WARNING: 'ffmpeg' not found in system PATH! Video rendering requires FFmpeg.")
-        logger.warning("On Windows: Run 'winget install Gyan.FFmpeg' or download from https://ffmpeg.org")
+    # 1. Check FFmpeg (System PATH, tools/ dir, or portable imageio_ffmpeg)
+    from core.video_engine import VideoEngine
+    engine = VideoEngine()
+    ffmpeg_bin = engine.ffmpeg_cmd
+    if ffmpeg_bin and (shutil.which(ffmpeg_bin) or Path(ffmpeg_bin).exists()):
+        logger.info(f"✓ FFmpeg detected: {ffmpeg_bin}")
     else:
-        logger.info("✓ FFmpeg detected.")
+        logger.warning("WARNING: 'ffmpeg' not found in system PATH! Video rendering requires FFmpeg.")
+        logger.warning("On Windows: Run 'winget install Gyan.FFmpeg' or 'pip install imageio-ffmpeg'")
 
     # 2. Check PyTorch & CUDA
     try:

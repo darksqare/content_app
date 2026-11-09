@@ -121,11 +121,11 @@ class StoryPrompter:
                         verbose=config.debug
                     )
                 else:
-                    logger.info(f"GGUF model not found at {model_path}. Using built-in procedural anime story engine.")
+                    logger.info("Prompter: Using built-in procedural anime story engine (0 MB extra VRAM). (Optional: run scripts/download_model.bat to enable local Qwen 2.5 LLM).")
             except ImportError:
-                logger.info("llama_cpp not installed. Using built-in procedural prompter engine.")
+                logger.info("Prompter: Using built-in procedural anime story engine (0 MB extra VRAM).")
             except Exception as e:
-                logger.info(f"llama_cpp DLL notice: {e}. Using built-in procedural prompter engine.")
+                logger.info(f"llama_cpp notice: {e}. Using built-in procedural prompter engine.")
 
     def generate(self, 
                  mode: str, 

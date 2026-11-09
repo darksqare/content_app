@@ -21,16 +21,33 @@ class VideoEngine:
         if cmd:
             return cmd
 
-        # 2. Try portable imageio_ffmpeg
+        # 2. tools/ directory in project
+        tools_dir = Path(config.base_dir) / "tools"
+        tools_bin = tools_dir / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+        if tools_bin.exists():
+            os.environ["PATH"] = str(tools_dir) + os.pathsep + os.environ.get("PATH", "")
+            return str(tools_bin)
+
+        # 3. Try portable imageio_ffmpeg and cache to tools/ffmpeg.exe
         try:
             import imageio_ffmpeg
             exe = imageio_ffmpeg.get_ffmpeg_exe()
             if exe and Path(exe).exists():
+                tools_dir.mkdir(parents=True, exist_ok=True)
+                target = tools_dir / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+                if not target.exists():
+                    try:
+                        shutil.copy2(exe, str(target))
+                        os.environ["PATH"] = str(tools_dir) + os.pathsep + os.environ.get("PATH", "")
+                        return str(target)
+                    except Exception:
+                        pass
+                os.environ["PATH"] = str(Path(exe).parent) + os.pathsep + os.environ.get("PATH", "")
                 return exe
         except Exception:
             pass
 
-        # 3. Check common Windows WinGet / Program Files paths
+        # 4. Check common Windows WinGet / Program Files paths
         local_app = os.environ.get("LOCALAPPDATA", "")
         candidates = [
             Path(local_app) / "Microsoft" / "WinGet" / "Links" / "ffmpeg.exe",
@@ -39,6 +56,7 @@ class VideoEngine:
         ]
         for p in candidates:
             if p.exists():
+                os.environ["PATH"] = str(p.parent) + os.pathsep + os.environ.get("PATH", "")
                 return str(p)
 
         return "ffmpeg"

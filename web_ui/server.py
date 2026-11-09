@@ -81,6 +81,14 @@ def get_index():
     index_file = static_dir / "index.html"
     return FileResponse(str(index_file))
 
+@app.get("/favicon.ico", include_in_schema=False)
+def get_favicon():
+    fav = static_dir / "favicon.ico"
+    if fav.exists():
+        return FileResponse(str(fav), media_type="image/x-icon")
+    from fastapi import Response
+    return Response(status_code=204)
+
 @app.get("/api/config")
 def get_config():
     return {

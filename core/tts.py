@@ -7,12 +7,20 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from core.config import config
 
+import warnings
+
+# Suppress known PyTorch module deprecation warnings from third-party weights
+warnings.filterwarnings("ignore", category=UserWarning, module="torch.nn.modules.rnn")
+warnings.filterwarnings("ignore", category=FutureWarning, module="torch.nn.utils.weight_norm")
+warnings.filterwarnings("ignore", message=".*dropout option adds dropout.*")
+warnings.filterwarnings("ignore", message=".*torch.nn.utils.weight_norm is deprecated.*")
+
 logger = logging.getLogger("TTSEngine")
 
 class TTSEngine:
     def __init__(self):
         self.backend = config.tts_backend.lower()
-        self.kokoro_pipeline = None
+        self.kokoro_pipelines = {}
         self._init_kokoro()
 
     def _init_kokoro(self):
@@ -21,12 +29,27 @@ class TTSEngine:
                 from kokoro import KPipeline
                 # KPipeline handles text-to-speech with local weights
                 logger.info("Initializing offline Kokoro-82M pipeline...")
-                self.kokoro_pipeline = KPipeline(lang_code='a')  # 'a' for American English
+                # Pass repo_id explicitly to suppress defaulting warning
+                self.kokoro_pipelines['a'] = KPipeline(lang_code='a', repo_id='hexgrad/Kokoro-82M')
                 logger.info("Kokoro-82M pipeline loaded successfully.")
             except ImportError:
                 logger.warning("kokoro package not installed. TTSEngine will use pyttsx3/offline synthesis until setup finishes.")
             except Exception as e:
                 logger.warning(f"Kokoro initialization notice: {e}. Falling back to system offline TTS.")
+
+    def _get_pipeline(self, voice: str):
+        if not self.kokoro_pipelines:
+            return None
+        # British voices begin with 'b' (bm_george, bf_emma), American with 'a' (am_michael, af_sky)
+        lang_code = 'b' if voice and voice.startswith(('b', 'z')) else 'a'
+        if lang_code not in self.kokoro_pipelines:
+            try:
+                from kokoro import KPipeline
+                self.kokoro_pipelines[lang_code] = KPipeline(lang_code=lang_code, repo_id='hexgrad/Kokoro-82M')
+            except Exception as e:
+                logger.warning(f"Failed to load Kokoro pipeline for lang '{lang_code}': {e}. Using default.")
+                return self.kokoro_pipelines.get('a')
+        return self.kokoro_pipelines.get(lang_code)
 
     def synthesize(self, text: str, output_path: str, voice: str = None, speed: float = None) -> Dict[str, Any]:
         """
@@ -46,10 +69,11 @@ class TTSEngine:
         success = False
 
         # 1. Try Kokoro-82M offline
-        if self.kokoro_pipeline is not None:
+        pipeline = self._get_pipeline(chosen_voice)
+        if pipeline is not None:
             try:
                 import soundfile as sf
-                generator = self.kokoro_pipeline(text, voice=chosen_voice, speed=chosen_speed, split_pattern=r'\n+')
+                generator = pipeline(text, voice=chosen_voice, speed=chosen_speed, split_pattern=r'\n+')
                 audio_segments = []
                 for _, _, audio in generator:
                     audio_segments.append(audio)

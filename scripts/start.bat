@@ -36,6 +36,7 @@ if errorlevel 1 (
 )
 
 :: Ensure FFmpeg is available (system or portable)
+if exist "tools" set "PATH=%CD%\tools;!PATH!"
 where ffmpeg >nul 2>&1
 if errorlevel 1 (
     "venv\Scripts\python.exe" -c "import imageio_ffmpeg" >nul 2>&1
