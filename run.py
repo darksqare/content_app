@@ -31,30 +31,66 @@ logging.basicConfig(
 )
 logger = logging.getLogger("Launcher")
 
-def check_system_prerequisites():
-    logger.info("Checking system prerequisites...")
+def check_system_prerequisites(debug_mode: bool = False):
+    import platform
+    logger.info("=" * 65)
+    logger.info("🎬 AutoAnime Shorts - Subsystems Diagnostics")
+    logger.info("=" * 65)
     
-    # 1. Check FFmpeg (System PATH, tools/ dir, or portable imageio_ffmpeg)
-    from core.video_engine import VideoEngine
-    engine = VideoEngine()
-    ffmpeg_bin = engine.ffmpeg_cmd
-    if ffmpeg_bin and (shutil.which(ffmpeg_bin) or Path(ffmpeg_bin).exists()):
-        logger.info(f"✓ FFmpeg detected: {ffmpeg_bin}")
-    else:
-        logger.warning("WARNING: 'ffmpeg' not found in system PATH! Video rendering requires FFmpeg.")
-        logger.warning("On Windows: Run 'winget install Gyan.FFmpeg' or 'pip install imageio-ffmpeg'")
+    # 1. System & Paths
+    logger.info(f"System: OS={platform.system()} {platform.release()} ({platform.machine()}) | Python={platform.python_version()}")
+    logger.info(f"Root Directory: {ROOT_DIR}")
+    logger.info(f"Output Directory: {config.output_dir}")
+    logger.info(f"Story Vault DB: {config.vault_db_path}")
 
-    # 2. Check PyTorch & CUDA
+    # 2. Hardware & CUDA
     try:
         import torch
         if torch.cuda.is_available():
-            device_name = torch.cuda.get_device_name(0)
+            dev_name = torch.cuda.get_device_name(0)
             vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-            logger.info(f"✓ NVIDIA GPU Detected: {device_name} ({vram_gb:.1f} GB VRAM)")
+            logger.info(f"Hardware: NVIDIA GPU={dev_name} | VRAM={vram_gb:.1f} GB | PyTorch={torch.__version__} | CUDA={torch.version.cuda}")
         else:
-            logger.warning("! Running in CPU mode. (CUDA not detected).")
+            logger.warning("Hardware: Running on CPU (CUDA not active)")
     except ImportError:
-        logger.info("! PyTorch not yet installed in current environment.")
+        logger.warning("Hardware: PyTorch not installed in this environment.")
+    except Exception as e:
+        logger.warning(f"Hardware notice: {e}")
+
+    # 3. Audio & Voice Engine
+    try:
+        from core.tts import TTSEngine
+        tts = TTSEngine()
+        logger.info(f"Audio Engine: Backend={config.tts_backend.upper()} | Default Narrator={config.tts_voice} (Male Cinematic) | Speed={config.tts_speed}x")
+    except Exception as e:
+        logger.warning(f"Audio engine notice: {e}")
+
+    # 4. Video Engine & FFmpeg
+    try:
+        from core.video_engine import VideoEngine
+        engine = VideoEngine()
+        ffmpeg_bin = engine.ffmpeg_cmd
+        if ffmpeg_bin and (shutil.which(ffmpeg_bin) or Path(ffmpeg_bin).exists()):
+            logger.info(f"Video Engine: FFmpeg={ffmpeg_bin} | Target Resolution={config.video_resolution} (9:16) | FPS={config.video_fps}")
+        else:
+            logger.warning("Video Engine: 'ffmpeg' not found in system PATH or python environment!")
+            logger.warning("On Windows: Run 'winget install Gyan.FFmpeg' or 'pip install imageio-ffmpeg'")
+    except Exception as e:
+        logger.warning(f"Video engine notice: {e}")
+
+    # 5. Visual Diffusion Pipeline
+    logger.info(f"Visual Engine: Model={config.image_model_id} | FP16 Half-Precision={config.half_precision} | Device={config.device}")
+
+    # 6. Narrative Prompter Engine
+    try:
+        from core.prompter import StoryPrompter
+        prompter = StoryPrompter()
+        llm_status = "Local GGUF (Active)" if prompter.llm else "Procedural Story Synthesizer (0 MB extra VRAM)"
+        logger.info(f"Prompter Engine: {llm_status} | Anti-Repetition Vault Lookback={config.memory_lookback_count} stories")
+    except Exception as e:
+        logger.warning(f"Prompter engine notice: {e}")
+
+    logger.info("=" * 65)
 
 def main():
     parser = argparse.ArgumentParser(description="AutoAnime Shorts - Local AI Content Studio")
@@ -65,7 +101,12 @@ def main():
 
     args = parser.parse_args()
 
-    check_system_prerequisites()
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug logging enabled.")
+
+    check_system_prerequisites(debug_mode=args.debug)
 
     print("\n" + "=" * 65)
     print("  🎬 AutoAnime Shorts - Local AI Web-Novel & Shorts Studio")

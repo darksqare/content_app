@@ -220,6 +220,7 @@ class PipelineManager:
             self.image_gen._ensure_pipeline()
 
         chosen_voice = story_data.get("voice") or config.tts_voice
+        logger.info(f"🎬 [PIPELINE START] Story: '{story_data.get('title')}' | Scenes: {total_scenes} | Voice: {chosen_voice} | Output: {job_dir.name}")
 
         # 1. Generate Voice Audio & Scene Visuals
         for idx, scene in enumerate(scenes):
@@ -234,13 +235,16 @@ class PipelineManager:
 
             # Generate Speech (using selected male/female voice)
             narration = scene.get("narration", "").strip()
+            logger.info(f"  ▶ [Scene {scene_num:02d}/{total_scenes:02d}] TTS Narration: \"{narration[:60]}...\" (voice: {chosen_voice})")
             audio_out = job_dir / f"audio_scene_{scene_num:02d}.wav"
             audio_res = self.tts.synthesize(narration, str(audio_out), voice=chosen_voice)
             audio_segments.append(audio_res)
+            logger.info(f"  ✓ [Scene {scene_num:02d}/{total_scenes:02d}] Audio ready ({audio_res.get('duration')}s)")
 
             # Generate Image Slide
             image_prompt = scene.get("image_prompt", "")
             img_out = job_dir / f"slide_scene_{scene_num:02d}.png"
+            logger.info(f"  ▶ [Scene {scene_num:02d}/{total_scenes:02d}] Image Gen: prompt=\"{image_prompt[:70]}...\" (mood: {scene.get('mood', 'suspense')})")
             scene_img_path = self.image_gen.generate_scene_image(
                 prompt=image_prompt,
                 output_path=str(img_out),
@@ -248,6 +252,7 @@ class PipelineManager:
                 mood=scene.get("mood", "suspense")
             )
             scene["image_path"] = scene_img_path
+            logger.info(f"  ✓ [Scene {scene_num:02d}/{total_scenes:02d}] Visual frame saved")
 
         # 2. Assemble Final 9:16 Video
         if self.current_job:
@@ -256,12 +261,14 @@ class PipelineManager:
             if callback:
                 callback(self.current_job)
 
+        logger.info(f"🎬 [ASSEMBLY] Merging {total_scenes} scene clips with Ken Burns camera motion & burning karaoke subtitles...")
         final_video_path = job_dir / f"{job_id}_final_video.mp4"
         self.video_engine.assemble_video(
             scenes=scenes,
             audio_segments=audio_segments,
             output_video_path=str(final_video_path)
         )
+        logger.info(f"✓ [VIDEO COMPLETE] Output file: {final_video_path}")
 
         # 3. Register story into the SQLite Vault
         if self.current_job:
