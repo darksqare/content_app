@@ -216,6 +216,52 @@
               </div>
             </div>
 
+            <!-- Character Visual Bible & Consistency Engine -->
+            <div class="card" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(99, 102, 241, 0.25); margin-bottom: 20px; padding: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.1rem;">🎭</span>
+                  <strong style="font-size: 0.95rem;">Character Visual Bible (Local Consistency Anchors)</strong>
+                </div>
+                <button id="btn-sync-characters" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.8rem;" title="Enforce and sync these visual anchors across all scenes">
+                  🔄 Sync Across All Scenes
+                </button>
+              </div>
+              <p class="field-hint" style="margin-top: 0; margin-bottom: 12px;">
+                Hard visual anchors lock hair, eyes, facial features, and signature outfits. Changing them here and clicking <strong>Sync Across All Scenes</strong> immediately updates all scene prompts to guarantee 100% visual consistency.
+              </p>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                <!-- Protagonist Visual Card -->
+                <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: 700; font-size: 0.85rem; color: #818cf8;">👤 Protagonist Anchor</span>
+                    <span id="bible-protag-name" class="badge" style="font-size: 0.7rem;">Liu Yanran</span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">
+                    <div><strong>Hair & Eyes:</strong> <span id="bible-protag-hair-eyes" style="color: var(--text-secondary);">Silver hair, sapphire-blue eyes</span></div>
+                    <div><strong>Outfit:</strong> <span id="bible-protag-outfit" style="color: var(--text-secondary);">Tailored black Italian suit, phantom mask</span></div>
+                  </div>
+                  <label style="font-size: 0.75rem; margin-bottom: 4px; display: block;">Immutable Visual Anchor Prompt:</label>
+                  <textarea id="bible-protag-anchor" class="form-control" style="font-size: 0.75rem; font-family: monospace; height: 70px; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Deuteragonist Visual Card -->
+                <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: 700; font-size: 0.85rem; color: #38bdf8;">👤 Deuteragonist Anchor</span>
+                    <span id="bible-deuter-name" class="badge" style="font-size: 0.7rem;">Chen Chen</span>
+                  </div>
+                  <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;">
+                    <div><strong>Hair & Eyes:</strong> <span id="bible-deuter-hair-eyes" style="color: var(--text-secondary);">Tousled black hair, amber-brown eyes</span></div>
+                    <div><strong>Outfit:</strong> <span id="bible-deuter-outfit" style="color: var(--text-secondary);">Tattered white dress shirt, keepsake ring</span></div>
+                  </div>
+                  <label style="font-size: 0.75rem; margin-bottom: 4px; display: block;">Immutable Visual Anchor Prompt:</label>
+                  <textarea id="bible-deuter-anchor" class="form-control" style="font-size: 0.75rem; font-family: monospace; height: 70px; resize: vertical;"></textarea>
+                </div>
+              </div>
+            </div>
+
             <div class="scenes-container-header">
               <h3>Scene-by-Scene Breakdown (<span id="scene-count-badge">0</span> scenes)</h3>
               <span class="hint">Click any narration or prompt to edit before rendering</span>

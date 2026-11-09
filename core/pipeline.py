@@ -205,6 +205,10 @@ class PipelineManager:
         job_dir = Path(config.output_dir) / job_id
         job_dir.mkdir(parents=True, exist_ok=True)
 
+        # Save complete story data with character visual bibles
+        with open(job_dir / "story_data.json", "w", encoding="utf-8") as f:
+            json.dump(story_data, f, indent=2, ensure_ascii=False)
+
         audio_segments = []
 
         # Initialize / verify diffusion pipeline before starting

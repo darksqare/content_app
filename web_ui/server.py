@@ -158,6 +158,17 @@ def generate_prompts(req: StoryGenRequest):
         logger.exception("Error generating prompt/script")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/story/sync-characters")
+def sync_character_consistency(req: Dict[str, Any] = Body(...)):
+    try:
+        story_data = req.get("story_data", {})
+        genre_id = req.get("genre_id", story_data.get("genre_id", ""))
+        synced_story = pipeline.prompter.enforce_character_consistency(story_data, genre_id=genre_id)
+        return {"status": "success", "story": synced_story}
+    except Exception as e:
+        logger.exception("Error syncing character consistency")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/tts/preview")
 def preview_voice(req: VoicePreviewRequest):
     try:

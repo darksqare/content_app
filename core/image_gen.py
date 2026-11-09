@@ -7,8 +7,8 @@ from core.config import config
 
 logger = logging.getLogger("ImageGenerator")
 
-DEFAULT_POSITIVE_PREFIX = "masterpiece, best quality, ultra-detailed 2D anime illustration, vibrant colors, cinematic lighting, vertical 9:16, "
-DEFAULT_NEGATIVE_PROMPT = "(worst quality, low quality:1.4), bad anatomy, deformed, bad hands, missing fingers, extra digits, blurry, cropped, bad proportions, watermark, signature, username, text, photorealistic, 3d render"
+DEFAULT_POSITIVE_PREFIX = "masterpiece, best quality, ultra-detailed 2D anime illustration, vertical 9:16, "
+DEFAULT_NEGATIVE_PROMPT = "(worst quality, low quality:1.4), bad anatomy, deformed face, bad eyes, bad hands, missing fingers, extra digits, blurry, bad proportions, watermark, signature, username, text, inconsistent hair color, inconsistent eye color, mutated features, photorealistic skin pores, 3d render"
 
 class ImageGenerator:
     def __init__(self):
@@ -74,12 +74,12 @@ class ImageGenerator:
         out_file = Path(output_path)
         out_file.parent.mkdir(parents=True, exist_ok=True)
 
-        # Detect physical objects/props and append realism tags
+        # Detect physical objects/props and append realism tags if missing
         object_keywords = [
             "ring", "car", "maybach", "phone", "screen", "cage", "gun", "pistol",
             "sword", "soup", "noodles", "bowl", "spoon", "food", "glass", "bottle",
             "watch", "key", "door", "table", "chair", "bed", "window", "suit", "clothing",
-            "knife", "laptop", "building", "hallway", "steering wheel", "wipes"
+            "knife", "laptop", "building", "hallway", "steering wheel", "wipes", "pendant"
         ]
         prompt_lower = prompt.lower()
         has_object = any(k in prompt_lower for k in object_keywords)
@@ -87,7 +87,10 @@ class ImageGenerator:
         if has_object and "realistic" not in prompt_lower:
             enhanced_prompt = f"{prompt}, realistic object textures, photorealistic materials, realistic reflections and lighting, sharp physical object focus"
 
-        full_prompt = DEFAULT_POSITIVE_PREFIX + enhanced_prompt
+        if enhanced_prompt.startswith("masterpiece, best quality"):
+            full_prompt = enhanced_prompt
+        else:
+            full_prompt = DEFAULT_POSITIVE_PREFIX + enhanced_prompt
 
         if self.pipe is not None:
             try:

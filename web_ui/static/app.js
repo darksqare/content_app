@@ -234,6 +234,29 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("story-conflict").textContent = story.core_conflict || "N/A";
     document.getElementById("story-twist").textContent = story.climax_twist || "N/A";
 
+    // Populate Character Visual Bible
+    const sheets = story.character_sheets || {};
+    const protag = sheets.protagonist || {};
+    const deuter = sheets.deuteragonist || {};
+
+    const protagNameEl = document.getElementById("bible-protag-name");
+    if (protagNameEl) protagNameEl.textContent = protag.name || "Protagonist";
+    const protagHairEyesEl = document.getElementById("bible-protag-hair-eyes");
+    if (protagHairEyesEl) protagHairEyesEl.textContent = `${protag.hair || "Visual anchor"} • ${protag.eyes || ""}`;
+    const protagOutfitEl = document.getElementById("bible-protag-outfit");
+    if (protagOutfitEl) protagOutfitEl.textContent = `${protag.signature_outfit || ""} ${protag.accessories ? "(" + protag.accessories + ")" : ""}`;
+    const protagAnchorEl = document.getElementById("bible-protag-anchor");
+    if (protagAnchorEl) protagAnchorEl.value = protag.visual_anchor || "";
+
+    const deuterNameEl = document.getElementById("bible-deuter-name");
+    if (deuterNameEl) deuterNameEl.textContent = deuter.name || "Deuteragonist";
+    const deuterHairEyesEl = document.getElementById("bible-deuter-hair-eyes");
+    if (deuterHairEyesEl) deuterHairEyesEl.textContent = `${deuter.hair || "Visual anchor"} • ${deuter.eyes || ""}`;
+    const deuterOutfitEl = document.getElementById("bible-deuter-outfit");
+    if (deuterOutfitEl) deuterOutfitEl.textContent = `${deuter.signature_outfit || ""} ${deuter.accessories ? "(" + deuter.accessories + ")" : ""}`;
+    const deuterAnchorEl = document.getElementById("bible-deuter-anchor");
+    if (deuterAnchorEl) deuterAnchorEl.value = deuter.visual_anchor || "";
+
     const scenesList = document.getElementById("scenes-list");
     scenesList.innerHTML = "";
     document.getElementById("scene-count-badge").textContent = (story.scenes || []).length;
@@ -241,15 +264,70 @@ document.addEventListener("DOMContentLoaded", () => {
     (story.scenes || []).forEach((sc, idx) => {
       const card = document.createElement("div");
       card.className = "scene-card";
+      const charLabel = sc.featured_character_label || (sc.featured_character ? sc.featured_character.toUpperCase() : "Scene Visuals");
       card.innerHTML = `
         <div class="scene-header">
-          <span class="scene-badge">SCENE ${(sc.scene_number || idx + 1).toString().padStart(2, '0')}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="scene-badge">SCENE ${(sc.scene_number || idx + 1).toString().padStart(2, '0')}</span>
+            <span class="badge" style="font-size: 0.72rem; background: rgba(99, 102, 241, 0.15); color: #818cf8;">👤 ${charLabel}</span>
+          </div>
           <span class="scene-tag">[${(sc.mood || 'suspense').toUpperCase()}] • ${sc.motion_type || 'zoom_in'}</span>
         </div>
         <textarea class="scene-narration-box" rows="2" data-index="${idx}" data-field="narration" placeholder="Spoken narration text...">${sc.narration || ""}</textarea>
-        <textarea class="scene-prompt-box" rows="2" data-index="${idx}" data-field="image_prompt" placeholder="Anime image prompt...">${sc.image_prompt || ""}</textarea>
+        <textarea class="scene-prompt-box" rows="3" data-index="${idx}" data-field="image_prompt" placeholder="Anime image prompt...">${sc.image_prompt || ""}</textarea>
       `;
       scenesList.appendChild(card);
+    });
+  }
+
+  // Sync Character Consistency Across All Scenes
+  const btnSyncChar = document.getElementById("btn-sync-characters");
+  if (btnSyncChar) {
+    btnSyncChar.addEventListener("click", async () => {
+      if (!currentStoryData) return;
+
+      const pAnchor = document.getElementById("bible-protag-anchor")?.value;
+      const dAnchor = document.getElementById("bible-deuter-anchor")?.value;
+
+      if (!currentStoryData.character_sheets) currentStoryData.character_sheets = {};
+      if (!currentStoryData.character_sheets.protagonist) currentStoryData.character_sheets.protagonist = {};
+      if (!currentStoryData.character_sheets.deuteragonist) currentStoryData.character_sheets.deuteragonist = {};
+
+      if (pAnchor) currentStoryData.character_sheets.protagonist.visual_anchor = pAnchor;
+      if (dAnchor) currentStoryData.character_sheets.deuteragonist.visual_anchor = dAnchor;
+
+      btnSyncChar.disabled = true;
+      btnSyncChar.textContent = "⏳ Syncing...";
+
+      try {
+        const res = await fetch("/api/story/sync-characters", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            story_data: currentStoryData,
+            genre_id: document.getElementById("genre-select")?.value || "underworld_dark_romance"
+          })
+        });
+
+        const data = await res.json();
+        if (data.status === "success") {
+          currentStoryData = data.story;
+          renderStoryReview(currentStoryData);
+          btnSyncChar.textContent = "✓ Synced!";
+          setTimeout(() => {
+            btnSyncChar.textContent = "🔄 Sync Across All Scenes";
+            btnSyncChar.disabled = false;
+          }, 1500);
+        } else {
+          alert("Sync error: " + (data.detail || "Unknown error"));
+          btnSyncChar.textContent = "🔄 Sync Across All Scenes";
+          btnSyncChar.disabled = false;
+        }
+      } catch (err) {
+        alert("Failed to sync characters: " + err);
+        btnSyncChar.textContent = "🔄 Sync Across All Scenes";
+        btnSyncChar.disabled = false;
+      }
     });
   }
 
@@ -261,6 +339,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // Harvest any user edits made in the scene review cards
     currentStoryData.title = document.getElementById("story-title-input").value;
     currentStoryData.voice = document.getElementById("voice-select")?.value || "am_michael";
+
+    // Update anchors if edited
+    const pAnchor = document.getElementById("bible-protag-anchor")?.value;
+    const dAnchor = document.getElementById("bible-deuter-anchor")?.value;
+    if (pAnchor && currentStoryData.character_sheets?.protagonist) {
+      currentStoryData.character_sheets.protagonist.visual_anchor = pAnchor;
+    }
+    if (dAnchor && currentStoryData.character_sheets?.deuteragonist) {
+      currentStoryData.character_sheets.deuteragonist.visual_anchor = dAnchor;
+    }
+
     const narrationBoxes = document.querySelectorAll(".scene-narration-box");
     const promptBoxes = document.querySelectorAll(".scene-prompt-box");
 
