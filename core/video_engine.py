@@ -5,7 +5,7 @@ import subprocess
 import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from core.config import config
+from core.config import config, BASE_DIR
 
 logger = logging.getLogger("VideoEngine")
 
@@ -22,7 +22,7 @@ class VideoEngine:
             return cmd
 
         # 2. tools/ directory in project
-        tools_dir = Path(config.base_dir) / "tools"
+        tools_dir = Path(getattr(config, "base_dir", BASE_DIR)) / "tools"
         tools_bin = tools_dir / ("ffmpeg.exe" if os.name == "nt" else "ffmpeg")
         if tools_bin.exists():
             os.environ["PATH"] = str(tools_dir) + os.pathsep + os.environ.get("PATH", "")

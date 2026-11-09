@@ -62,6 +62,7 @@ class AppConfig:
     })
 
     # Paths
+    base_dir: str = str(BASE_DIR)
     output_dir: str = str(BASE_DIR / "output")
     models_dir: str = str(BASE_DIR / "models")
     presets_dir: str = str(BASE_DIR / "presets")
